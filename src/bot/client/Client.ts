@@ -9,6 +9,7 @@ declare module 'discord-akairo' {
 	interface AkairoClient {
 		logger: Logger;
 		commandHandler: CommandHandler;
+		listenerHandler: ListenerHandler;
 		config: ClientOptions;
 		settings: SettingsProvider;
 	}
