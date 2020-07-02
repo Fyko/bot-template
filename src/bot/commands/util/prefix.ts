@@ -1,5 +1,5 @@
 import { Argument, Command, PrefixSupplier } from 'discord-akairo';
-import { Message } from 'discord.js';
+import { Message, Permissions } from 'discord.js';
 
 export default class PrefixCommand extends Command {
 	public constructor() {
@@ -9,17 +9,16 @@ export default class PrefixCommand extends Command {
 			args: [
 				{
 					id: 'prefix',
-					type: Argument.validate('string', (_, p) => !/\s/.test(p) && p.length <= 10),
+					type: Argument.validate('string', (_, p) => !/\s/.test(p) && p.length <= 8),
 					prompt: {
-						start: 'What do you want to set the prefix to?',
-						retry: "C'mon. I need a prefix without spaces and less than 10 characters",
+						start: 'what would you like to change the command prefix to?',
+						retry: "please provide a valid prefix with no spaces that's less than 8 characters.",
 						optional: true,
 					},
 				},
 			],
-			userPermissions: ['MANAGE_GUILD'],
 			description: {
-				content: "Changes this server's prefix.",
+				content: 'Changes or displays the command prefix.',
 				usage: '[prefix]',
 				examples: ['', '?', '>'],
 			},
@@ -27,13 +26,18 @@ export default class PrefixCommand extends Command {
 	}
 
 	public async exec(msg: Message, { prefix }: { prefix: string | null }): Promise<Message | Message[] | void> {
-		if (prefix && !msg.guild) prefix = null;
-		if (!prefix) {
-			const prefix = (this.handler.prefix as PrefixSupplier)(msg);
-			return msg.util?.reply(`the current prefix is \`${prefix}\`.`);
+		const settings = await (this.handler.prefix as PrefixSupplier)(msg);
+		if (!msg.guild) {
+			return msg.util?.reply(`The command prefix is \`${settings}\`.`);
 		}
 
-		await this.client.settings.set('guild', { id: msg.guild!.id }, { prefix });
-		return msg.util?.reply(`successfully set the prefix to \`${prefix}\`.`);
+		// if a user missing the Manage Guild permissions tries to change the prefix
+		if (prefix && !msg.member?.permissions.has(Permissions.FLAGS.MANAGE_GUILD)) prefix = null;
+		if (!prefix) {
+			return msg.util?.reply(`the current command prefix for \`${msg.guild.name}\` is \`${prefix}\`.`);
+		}
+
+		await this.client.settings.set('guild', { id: msg.guild.id }, { prefix });
+		return msg.util?.reply(`successfully changed the command prefix from \`${settings}\` to \`${prefix}\`.`);
 	}
 }
